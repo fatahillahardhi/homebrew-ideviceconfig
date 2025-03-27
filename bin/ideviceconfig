@@ -276,7 +276,7 @@ begin
     opts.banner = <<~BANNER
       Author: https://github.com/fatahillahardhi
 
-      Usage: icheckdevice [options]
+      Usage: ideviceconfig [options]
 
     BANNER
     opts.on("--udid=UDID", "Specify the target device by UDID") { |v| options[:udid] = v }
@@ -325,7 +325,7 @@ begin
     mass_restart_device()
   else
     puts "Need help? Use the following command:"
-    puts "👉 icheckdevice -h  (to see available options)"
+    puts "👉 ideviceconfig -h  (to see available options)"
   end
 
 rescue OptionParser::InvalidOption, OptionParser::MissingArgument => e
