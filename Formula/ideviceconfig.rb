@@ -1,9 +1,9 @@
 class Ideviceconfig < Formula
   desc "iOS Device Management Tool"
   homepage "https://github.com/fatahillahardhi/homebrew-ideviceconfig"
-  version "1.0.1"
-  url "https://github.com/fatahillahardhi/homebrew-ideviceconfig/archive/refs/tags/v1.0.1.tar.gz"
-  
+  version "1.0.2"
+  url "https://github.com/fatahillahardhi/homebrew-ideviceconfig/archive/refs/tags/v1.0.2.tar.gz"
+
   depends_on "ruby"
 
   def install    
