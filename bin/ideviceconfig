@@ -280,12 +280,11 @@ begin
 
     BANNER
     opts.on("--udid=UDID", "Specify the target device by UDID") { |v| options[:udid] = v }
-    opts.on("--apps=APP_NAMES", "Specify the target apps to check (comma-separated)") { |v| options[:app_names] = v.split(/\s*,\s*/) }
+    opts.on("--appver=APP_NAMES", "Specify the target apps to check (comma-separated)") { |v| options[:appver] = v.split(/\s*,\s*/) }
     opts.on("--install=APP_PATH", "Specify the path of the app to install") { |v| options[:install] = v }
     opts.on("--mass-install=APP_PATH", "Specify the path of the app to install on all connected devices") { |v| options[:mass_install] = v }
     opts.on("--uninstall=BUNDLE_ID", "Specify the Bundle ID of the app to uninstall") { |v| options[:uninstall] = v }
     opts.on("--mass-uninstall=BUNDLE_ID", "Specify the Bundle ID of the app to uninstall from all connected devices") { |v| options[:mass_uninstall] = v }
-    opts.on("-a", "--appver", "Check the versions of installed apps") { options[:appver] = true }
     opts.on("-d", "--device_list", "Display a list of all connected iOS devices") { options[:device_list] = true }
     opts.on("-r", "--restart", "Restart the device") { options[:restart] = true }
     opts.on("-m", "--mass-restart", "Restart all connected devices") { options[:mass_restart] = true }
@@ -309,8 +308,8 @@ begin
   # Rest of the script remains the same as in the original implementation
   if options[:device_list]
     get_ios_devices
-  elsif options[:udid] && options[:app_names] && options[:appver]
-    check_ios_app_version(options[:udid], options[:app_names])
+  elsif options[:udid] && options[:appver]
+    check_ios_app_version(options[:udid], options[:appver])
   elsif options[:udid] && options[:uninstall]
     uninstall_apps(options[:udid], options[:uninstall])
   elsif options[:udid] && options[:install]
