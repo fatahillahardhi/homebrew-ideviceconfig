@@ -1,0 +1,337 @@
+#!/usr/bin/env ruby
+
+require 'open3'
+require 'nokogiri'
+require 'optparse'
+
+def get_connected_udids
+  stdout, stderr, status = Open3.capture3("idevice_id -l")
+  unless status.success?
+    puts "Error retrieving connected devices: #{stderr}"
+    return []
+  end
+  
+  udids = stdout.strip.split("\n")
+  if udids.empty?
+    puts "No devices connected."
+  end
+  
+  udids
+end
+
+def get_ios_devices
+  udids = get_connected_udids
+  return if udids.empty?
+
+  devices = []
+
+  udids.each do |udid|
+    device_info = get_device_info(udid)
+    devices << device_info if device_info
+  end
+
+  if devices.empty?
+    puts "No devices connected."
+  else
+    devices.each_with_index do |device, index|
+      puts "#{index + 1}. Device Name: #{device[:name]}, iOS Version: #{device[:version]}, Model: #{device[:model]}, UDID: #{device[:udid]}"
+    end
+  end
+end
+
+def get_device_info(udid)
+  stdout, stderr, status = Open3.capture3("ideviceinfo -u #{udid}")
+  return nil unless status.success?
+
+  info = {}
+  stdout.each_line do |line|
+    key, value = line.strip.split(": ", 2)
+    next unless value
+    case key
+    when "DeviceName" then info[:name] = value
+    when "ProductVersion" then info[:version] = value
+    when "ProductType" then info[:model] = map_product_type(value)
+    end
+  end
+  info[:udid] = udid if info[:name] && info[:version] && info[:model]
+  info
+end
+
+def map_product_type(product_type)
+  model_map = {
+     "iPhone1,1" => "iPhone",
+    "iPhone1,2" => "iPhone 3G",
+    "iPhone2,1" => "iPhone 3GS",
+    "iPhone3,1" => "iPhone 4",
+    "iPhone3,2" => "iPhone 4 GSM Rev A",
+    "iPhone3,3" => "iPhone 4 CDMA",
+    "iPhone4,1" => "iPhone 4S",
+    "iPhone5,1" => "iPhone 5 (GSM)",
+    "iPhone5,2" => "iPhone 5 (GSM+CDMA)",
+    "iPhone5,3" => "iPhone 5C (GSM)",
+    "iPhone5,4" => "iPhone 5C (Global)",
+    "iPhone6,1" => "iPhone 5S (GSM)",
+    "iPhone6,2" => "iPhone 5S (Global)",
+    "iPhone7,1" => "iPhone 6 Plus",
+    "iPhone7,2" => "iPhone 6",
+    "iPhone8,1" => "iPhone 6s",
+    "iPhone8,2" => "iPhone 6s Plus",
+    "iPhone8,4" => "iPhone SE (GSM)",
+    "iPhone9,1" => "iPhone 7",
+    "iPhone9,2" => "iPhone 7 Plus",
+    "iPhone9,3" => "iPhone 7",
+    "iPhone9,4" => "iPhone 7 Plus",
+    "iPhone10,1" => "iPhone 8",
+    "iPhone10,2" => "iPhone 8 Plus",
+    "iPhone10,3" => "iPhone X Global",
+    "iPhone10,4" => "iPhone 8",
+    "iPhone10,5" => "iPhone 8 Plus",
+    "iPhone10,6" => "iPhone X GSM",
+    "iPhone11,2" => "iPhone XS",
+    "iPhone11,4" => "iPhone XS Max",
+    "iPhone11,6" => "iPhone XS Max Global",
+    "iPhone11,8" => "iPhone XR",
+    "iPhone12,1" => "iPhone 11",
+    "iPhone12,3" => "iPhone 11 Pro",
+    "iPhone12,5" => "iPhone 11 Pro Max",
+    "iPhone12,8" => "iPhone SE 2nd Gen",
+    "iPhone13,1" => "iPhone 12 Mini",
+    "iPhone13,2" => "iPhone 12",
+    "iPhone13,3" => "iPhone 12 Pro",
+    "iPhone13,4" => "iPhone 12 Pro Max",
+    "iPhone14,2" => "iPhone 13 Pro",
+    "iPhone14,3" => "iPhone 13 Pro Max",
+    "iPhone14,4" => "iPhone 13 Mini",
+    "iPhone14,5" => "iPhone 13",
+    "iPhone14,6" => "iPhone SE 3rd Gen",
+    "iPhone14,7" => "iPhone 14",
+    "iPhone14,8" => "iPhone 14 Plus",
+    "iPhone15,2" => "iPhone 14 Pro",
+    "iPhone15,3" => "iPhone 14 Pro Max",
+    "iPhone15,4" => "iPhone 15",
+    "iPhone15,5" => "iPhone 15 Plus",
+    "iPhone16,1" => "iPhone 15 Pro",
+    "iPhone16,2" => "iPhone 15 Pro Max",
+    "iPhone17,1" => "iPhone 16 Pro",
+    "iPhone17,2" => "iPhone 16 Pro Max",
+    "iPhone17,3" => "iPhone 16",
+    "iPhone17,4" => "iPhone 16 Plus",
+    "iPhone17,5" => "iPhone 16e"
+  }
+  model_map[product_type] || product_type
+end
+
+def uninstall_apps(udid, bundleId)
+  command = ["ideviceinstaller", "--udid", udid, "-U", bundleId]
+  stdout, stderr, status = Open3.capture3(*command)
+
+  if status.success?
+    puts "✅ Successfully uninstalled #{bundleId} from the device with UDID #{udid}."
+  else
+    puts "❌ Failed to uninstall #{bundleId} from the device with UDID #{udid}: #{stderr.strip}"
+  end
+end
+
+def install_apps(udid, appPath)
+  command = ["ideviceinstaller", "--udid", udid, "-i", appPath]
+  stdout, stderr, status = Open3.capture3(*command)
+
+  if status.success?
+    puts "✅ Successfully installed the app from #{appPath} to the device with UDID #{udid}."
+  else
+    puts "❌ Failed to install the app from #{appPath} to the device with UDID #{udid}: #{stderr.strip}"
+  end
+end
+
+def mass_install_apps(appPath)
+  udids = get_connected_udids
+  return if udids.empty?
+
+  puts "Starting the mass installation process..."
+
+  udids.each_with_index do |udid, index|
+    puts "#{index + 1}. Installing the app on the device with UDID: #{udid}"
+
+    command = ["ideviceinstaller", "--udid", udid, "-i", appPath]
+    stdout, stderr, status = Open3.capture3(*command)
+
+    if status.success?
+      puts "✅ Successfully installed the app from #{appPath} on the device with UDID #{udid}."
+    else
+      puts "❌ Failed to install the app from #{appPath} on the device with UDID #{udid}. Error: #{stderr.strip}"
+    end
+    puts "================================="
+  end
+
+  puts "Mass installation process completed."
+end
+
+def mass_uninstall_apps(bundleId)
+  udids = get_connected_udids
+  return if udids.empty?
+
+  puts "Starting the mass uninstallation process..."
+  
+  udids.each_with_index do |udid, index|
+    puts "#{index + 1}. Uninstalling #{bundleId} from the device with UDID: #{udid}"
+
+    command = ["ideviceinstaller", "--udid", udid, "-U", bundleId]
+    stdout, stderr, status = Open3.capture3(*command)
+
+    if status.success?
+      puts "✅ Successfully uninstalled #{bundleId} from the device with UDID #{udid}."
+    else
+      puts "❌ Failed to uninstall #{bundleId} from the device with UDID #{udid}. Error: #{stderr.strip}"
+    end
+    puts "================================="
+  end
+
+  puts "Mass uninstallation process completed."
+end
+
+def restart_device(udid)
+  command = ["idevicediagnostics", "-u", udid, "restart"]
+  stdout, stderr, status = Open3.capture3(*command)
+
+  if status.success?
+    puts "✅ Successfully restarted the device with UDID #{udid}."
+  else
+    puts "❌ Failed to restart the device with UDID #{udid}. Error: #{stderr.strip}"
+  end
+end
+
+def mass_restart_device
+  udids = get_connected_udids
+  return if udids.empty?
+
+  puts "Starting the mass device restart process..."
+  
+  udids.each_with_index do |udid, index|
+    puts "#{index + 1}. Restarting the device with UDID: #{udid}"
+
+    command = ["idevicediagnostics", "-u", udid, "restart"]
+    stdout, stderr, status = Open3.capture3(*command)
+
+    if status.success?
+      puts "✅ Successfully restarted the device with UDID #{udid}."
+    else
+      puts "❌ Failed to restart the device with UDID #{udid}. Error: #{stderr.strip}"
+    end
+    puts "================================="
+  end
+
+  puts "Mass device restart process completed."
+end
+
+def check_ios_app_version(udid, app_names)
+  command = ["ideviceinstaller", "--udid", udid, "-l", "-o", "xml"]
+  stdout, stderr, status = Open3.capture3(*command)
+
+  unless status.success?
+    puts "❌ Failed to execute ideviceinstaller: #{stderr}"
+    return
+  end
+
+  xml_doc = Nokogiri::XML(stdout)
+  app_versions = {}
+
+  xml_doc.xpath('//key[text()="CFBundleName"]').each do |key_element|
+    app_value_element = key_element.next_element 
+    next unless app_value_element&.name == "string"
+
+    found_app_name = app_value_element.text.strip
+
+    app_names.each do |app_name|
+      if found_app_name.casecmp?(app_name.strip)
+        version_key_element = key_element.xpath('following-sibling::key[text()="CFBundleShortVersionString"]').first
+        version_value_element = version_key_element&.next_element
+
+        if version_value_element&.name == "string"
+          version = version_value_element.text.strip
+          app_versions[found_app_name] = version
+        end
+      end
+    end
+  end
+
+  if app_versions.empty?
+    puts "No matching apps found!"
+  else
+    app_versions.each { |app, version| puts "#{app} Version: #{version}" }
+  end
+end
+
+#!/usr/bin/env ruby
+
+require 'open3'
+require 'nokogiri'
+require 'optparse'
+
+# [Previous methods remain the same]
+
+# Modify the OptionParser block to handle invalid options more gracefully
+begin
+  options = {}
+  parser = OptionParser.new do |opts|
+    opts.banner = <<~BANNER
+      Author: https://github.com/fatahillahardhi
+
+      Usage: icheckdevice [options]
+
+    BANNER
+    opts.on("--udid=UDID", "Specify the target device by UDID") { |v| options[:udid] = v }
+    opts.on("--apps=APP_NAMES", "Specify the target apps to check (comma-separated)") { |v| options[:app_names] = v.split(/\s*,\s*/) }
+    opts.on("--install=APP_PATH", "Specify the path of the app to install") { |v| options[:install] = v }
+    opts.on("--mass-install=APP_PATH", "Specify the path of the app to install on all connected devices") { |v| options[:mass_install] = v }
+    opts.on("--uninstall=BUNDLE_ID", "Specify the Bundle ID of the app to uninstall") { |v| options[:uninstall] = v }
+    opts.on("--mass-uninstall=BUNDLE_ID", "Specify the Bundle ID of the app to uninstall from all connected devices") { |v| options[:mass_uninstall] = v }
+    opts.on("-a", "--appver", "Check the versions of installed apps") { options[:appver] = true }
+    opts.on("-d", "--device_list", "Display a list of all connected iOS devices") { options[:device_list] = true }
+    opts.on("-r", "--restart", "Restart the device") { options[:restart] = true }
+    opts.on("-m", "--mass-restart", "Restart all connected devices") { options[:mass_restart] = true }
+    opts.on("-h", "--help", "Show this help message") do
+      puts opts
+      exit
+    end
+  end
+
+  # Parse the arguments
+  parser.parse!
+
+  # Check if any unrecognized arguments were passed
+  if ARGV.any?
+    puts "Error: Unrecognized option(s): #{ARGV.join(', ')}"
+    puts "\nUsage help:"
+    puts parser.help
+    exit 1
+  end
+
+  # Rest of the script remains the same as in the original implementation
+  if options[:device_list]
+    get_ios_devices
+  elsif options[:udid] && options[:app_names] && options[:appver]
+    check_ios_app_version(options[:udid], options[:app_names])
+  elsif options[:udid] && options[:uninstall]
+    uninstall_apps(options[:udid], options[:uninstall])
+  elsif options[:udid] && options[:install]
+    install_apps(options[:udid], options[:install])
+  elsif options[:mass_uninstall]
+    mass_uninstall_apps(options[:mass_uninstall])
+  elsif options[:mass_install]
+    mass_install_apps(options[:mass_install])
+  elsif options[:udid] && options[:restart]
+    restart_device(options[:udid])
+  elsif options[:mass_restart]
+    mass_restart_device()
+  else
+    puts "Need help? Use the following command:"
+    puts "👉 icheckdevice -h  (to see available options)"
+  end
+
+rescue OptionParser::InvalidOption, OptionParser::MissingArgument => e
+  # Catch and handle specific OptionParser exceptions
+  puts "Error: #{e.message}"
+  puts "\nUsage help:"
+  puts parser.help
+  exit 1
+end
