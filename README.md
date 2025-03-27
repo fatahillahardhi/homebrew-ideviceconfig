@@ -39,12 +39,11 @@ sudo apt update && sudo apt install -y ruby libimobiledevice-utils libplist-util
 ## How to Use
 ```sh
 --udid=UDID                  Pick the target device by UDID
---apps=APP_NAMES             List the apps to check (comma-separated)
+--appver=APP_NAMES             List the apps to check (comma-separated)
 --install=APP_PATH           Choose the app file to install
 --mass-install=APP_PATH      Install an app on all connected devices
 --uninstall=BUNDLE_ID        Uninstall an app by its Bundle ID
 --mass-uninstall=BUNDLE_ID   Uninstall an app from all connected devices
--a, --appver                 Check installed app versions
 -d, --device_list            Show a list of connected iOS devices
 -r, --restart                Restart a device
 -m, --mass-restart           Restart all connected devices
@@ -93,11 +92,11 @@ ideviceconfig --device_list
 ### Check App Version
 - Check the version of a single app:
   ```sh
-  ideviceconfig --udid="<udid>" --apps="<APP_NAMES>" --appver
+  ideviceconfig --udid="<udid>" --appver="<APP_NAMES>"
   ```
 - Check the version of multiple apps:
   ```sh
-  ideviceconfig --udid="<udid>" --apps="<APP_NAMES_1>,<APP_NAMES_2>" --appver
+  ideviceconfig --udid="<udid>" --appver="<APP_NAMES_1>,<APP_NAMES_2>"
   ```
 
 ## Author
