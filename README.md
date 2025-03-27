@@ -3,7 +3,7 @@
 **ideviceconfig** is a simple tool that gathers shortcut commands from [libimobiledevice](https://github.com/libimobiledevice) to help manage iOS devices easily.
 
 ## Features
-- Check app versions on real iOS devices (single or multiple apps)
+- Check app versions on iOS Real Devices (single or multiple apps)
 - Restart devices (single or mass restart)
 - Install apps (single or mass install)
 - Uninstall apps (single or mass uninstall)
