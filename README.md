@@ -19,10 +19,8 @@ brew install ideviceconfig
 ## How to Update
 If you need to update it, follow these steps:
 ```sh
-brew uninstall ideviceconfig
-brew untap fatahillahardhi/ideviceconfig
-brew tap fatahillahardhi/ideviceconfig
-brew install ideviceconfig
+brew update
+brew upgrade ideviceconfig
 ```
 
 ## Requirements
