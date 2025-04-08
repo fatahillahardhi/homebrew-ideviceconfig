@@ -261,13 +261,6 @@ def check_ios_app_version(udid, app_names)
   end
 end
 
-#!/usr/bin/env ruby
-
-require 'open3'
-require 'nokogiri'
-require 'optparse'
-
-# [Previous methods remain the same]
 
 # Modify the OptionParser block to handle invalid options more gracefully
 begin
